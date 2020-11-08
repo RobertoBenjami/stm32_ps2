@@ -15,6 +15,8 @@ extern "C" {
        note: 0 = the highest priority, 15 = the lowest priority
 
    - PS2_TIM: the timer number used for the timers
+       note: which one you choose depends on the processor family you are using, 
+	         look at the processor-specific header
 
    - PS2_GETTIME(): get milliseconds function name
        note: (HAL_GetTick() or  osKernelSysTick() or ... )
