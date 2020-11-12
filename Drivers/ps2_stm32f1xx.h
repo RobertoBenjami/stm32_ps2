@@ -272,7 +272,7 @@ extern "C" {
 #define TIM_IRQ_CLR             PS2_TIM->SR = 0
 #define TIM_INIT {                              \
   PS2_TIM_CLKON;                                \
-  PS2_TIM->PSC = SystemCoreClock / 1000000 - 1; \
+  PS2_TIM->PSC = (PS2_TIM_CLK) / 1000000 - 1;   \
   PS2_TIM->ARR = PS2_STARTIMPULSEWIDTH - 1;     \
   PS2_TIM->CR1 |= TIM_CR1_OPM;                  \
   PS2_TIM->DIER |= TIM_DIER_UIE;                }
