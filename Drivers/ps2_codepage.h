@@ -1,12 +1,12 @@
 #ifndef _PS2_CODEPAGE_H
 #define _PS2_CODEPAGE_H
 
-// billentyüzet nyelvi kiosztás
+/* keyboard language settings */
 
 #if ((defined PS2_KBDCLK) && (defined PS2_KBDDATA))
 
-// KEYMAP_US vagy KEYMAP_D vagy KEYMAP_HU
-#define KEYMAP_HU
+/* KEYMAP_US or KEYMAP_D or KEYMAP_HU */
+#define KEYMAP_US
 
 #define PS2_MAINKEYMAP_SIZE  104
 #define PS2_NUMKEYMAP_SIZE    32
@@ -241,6 +241,6 @@ const PS2Keymap_t keymap = {
 };
 #endif
 
-#endif  // #if ((defined PS2_KBDCLK) && defined PS2_KBDDATA))
+#endif  /* #if ((defined PS2_KBDCLK) && defined PS2_KBDDATA)) */
 
-#endif  // _PS2_CODEPAGE_H
+#endif  /* _PS2_CODEPAGE_H */
