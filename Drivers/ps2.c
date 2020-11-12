@@ -1,6 +1,6 @@
 /* PS/2 keyboard and mouse interface driver
    author: Roberto Benjami
-   version: 2020.11.02
+   version: 2020.11.12
 */
 
 #include <stdint.h>
@@ -38,28 +38,39 @@
 #error unknown processor family
 #endif
 
-/* - no printf debug: 0
-   - printf debug:    1 */
-#define PS2_DEBUG               0
+// ============================================================================
+/* Configurations chapter */
 
-/* Ext and TIM interrupt priority (if we don't want to define it -> -1) */
-#define PS2_KBD_EXT_IRQ_PR     -1
-#define PS2_MOUSE_EXT_IRQ_PR   -1
-#define PS2_TIM_IRQn_PR        -1
+/* - printf debug off: 0
+   - printf debug on:  1 */
+#define PS2_PRINTF_DEBUG        0
+
+/* - pin debug off: 0
+   - pin debug irq: 1 (PS2_PIN_DEBUG_1 <- EXT interrupt, PS2_PIN_DEBUG_2 <- TIM interrupt)
+   - pin debug processor usage time: 2 (PS2_PIN_DEBUG_1 <- keyboard, PS2_PIN_DEBUG_2 <- mouse) */
+#define PS2_PIN_DEBUG           0
+
+/* pin debug pins (only if PS2_PIN_DEBUG == 1) */
+#define PS2_PIN_DEBUG_1      E, 0
+#define PS2_PIN_DEBUG_2      E, 1
+
+/* - clock filter off: 0
+ * - clock filter on:  1 */
+#define PS2_CLOCKFILTER         1
 
 /* start clock impulse (microsecond) */
 #define PS2_STARTIMPULSEWIDTH 800
 
-/* timeout constans (millisecond) */
+/* timeout constans (millisecond for timeout) */
 #define PS2_MOUSE_RESETTIME   750
-#define PS2_MOUSE_IDTIME       10
-#define PS2_MOUSE_RATETIME     10
-#define PS2_MOUSE_READTIME     20
+#define PS2_MOUSE_IDTIME       50
+#define PS2_MOUSE_RATETIME     50
+#define PS2_MOUSE_READTIME     80
 
-//-----------------------------------------------------------------------------
-#if   PS2_DEBUG == 0
+// ============================================================================
+#if   PS2_PRINTF_DEBUG == 0
 #define  ps2_printf(args...)
-#elif PS2_DEBUG == 1
+#elif PS2_PRINTF_DEBUG == 1
 #define  ps2_printf(args...)  printf(args)
 #endif
 
@@ -162,7 +173,7 @@ typedef enum
 
 typedef struct
 {
-  void              (*cb_rx)(uint8_t);  /* rx fifo write */
+  void              (*cb_rx)(uint8_t, uint8_t); /* rx fifo write */
   uint8_t           (*cb_tx)(uint8_t *);/* tx fifo read */
   volatile s_ps2s   status;             /* ps2 status */
   GPIO_TypeDef *    clockport;          /* clock pin GPIO address */
@@ -205,7 +216,7 @@ inline void ps2_initcheck(void)
 volatile uint8_t  ps2_kbdlockstatus;    /* the lock and led bits: 0,0,0,0,0,capslock,numlock,scrollock */
 volatile uint8_t  ps2_kbdctrlstatus;
 
-void     cb_ps2_kbdrx(uint8_t rxdata);
+void     cb_ps2_kbdrx(uint8_t rxdata, uint8_t error);
 uint8_t  cb_ps2_kbdtx(uint8_t * txdata);
 
 struct kbdbuf_r
@@ -226,8 +237,10 @@ static struct kbdbuf_r kbdrbuf = {0, 0,};
 static struct kbdbuf_t kbdtbuf = {0, 0,};
 
 t_Ps2   kbd = {cb_ps2_kbdrx, cb_ps2_kbdtx, 0, 0, 0, 0, PASSIVE};
+volatile uint8_t  kbd_rx_error = 0;
 
-__weak  void ps2_kbd_cbrxof(void) { }
+__weak  void ps2_kbd_cbrx(uint8_t rx_data) { }
+__weak  void ps2_kbd_cbrxerror(uint32_t rx_errorcode) { }
 
 // ----------------------------------------------------------------------------
 uint8_t ps2_kbd_datawrite(uint8_t kbd_data)
@@ -235,11 +248,11 @@ uint8_t ps2_kbd_datawrite(uint8_t kbd_data)
   if(FIFO_FULL(kbdtbuf, KBDTBUF_SIZE))
     return 0;
 
-  FIFO_WRITE(kbdtbuf, KBDTBUF_SIZE, kbd_data);   /* Add data to the transmit buffer. */
+  FIFO_WRITE(kbdtbuf, KBDTBUF_SIZE, kbd_data);  /* Add data to the transmit buffer. */
   ps2_printf("kt:%X\r\n", (unsigned int)kbd_data);
 
-  if(kbd.status == PASSIVE)
-  { /* can I send now? */
+  if(kbd.status == PASSIVE)             /* can I send now? */
+  {
     GPIOX_CLR(PS2_KBDCLK);              /* CLK = 0 */
     TIM_RESTART;
     PS2_KBDTIM_ON;                      /* Timer active */
@@ -283,9 +296,13 @@ uint8_t cb_ps2_kbdtx(uint8_t * txdata)
 
 // ----------------------------------------------------------------------------
 /* PS2 keyboard rx data store to rx fifo buffer */
-void cb_ps2_kbdrx(uint8_t rxdata)
+void cb_ps2_kbdrx(uint8_t rxdata, uint8_t error)
 {
   static uint8_t predata = 0;
+  if(error)
+  {
+    kbd_rx_error = 1;
+  }
 
   if(FIFO_NOTFULL(kbdrbuf, KBDRBUF_SIZE))
   {
@@ -294,7 +311,7 @@ void cb_ps2_kbdrx(uint8_t rxdata)
   }
   else
   {
-    ps2_kbd_cbrxof();
+    ps2_kbd_cbrxerror(PS2_ERROR_OVF);
     ps2_printf("kcr:full!!\r\n");
   }
 
@@ -317,11 +334,12 @@ void cb_ps2_kbdrx(uint8_t rxdata)
       predata = rxdata;
       return;
     }
-    ps2_printf("klock:%X\r\n", (unsigned int)ps2_kbdlockstatus);
+    ps2_printf("key lock:%X\r\n", (unsigned int)ps2_kbdlockstatus);
     ps2_kbd_datawrite(0xED);
     ps2_kbd_datawrite(ps2_kbdlockstatus);
   }
   predata = rxdata;
+  ps2_kbd_cbrx(rxdata);
 }
 
 
@@ -368,12 +386,15 @@ struct mousebuf_t
 
 static struct mousebuf_r mouserbuf = {0, 0,};
 static struct mousebuf_t mousetbuf = {0, 0,};
+uint8_t       read_packet_size = 0;
+volatile uint8_t mouse_rx_error = 0;
 
-__weak  void ps2_mouse_cbrxof(void) { }
+__weak  void ps2_mouse_cbrx(uint32_t rx_datanum) { }
+__weak  void ps2_mouse_cbrxerror(uint32_t rx_errorcode) { }
 
 // ----------------------------------------------------------------------------
 /* ps2 mouse tx data read from tx fifo buffer */
-static inline uint8_t cb_ps2_mousetx(uint8_t * txdata)
+uint8_t cb_ps2_mousetx(uint8_t * txdata)
 {
   if(FIFO_NOTEMPTY(mousetbuf))
   { /* not empty */
@@ -390,16 +411,31 @@ static inline uint8_t cb_ps2_mousetx(uint8_t * txdata)
 
 // ----------------------------------------------------------------------------
 /* ps2 mouse rx data store to rx fifo buffer (callback) */
-static inline void cb_ps2_mouserx(uint8_t rxdata)
+void cb_ps2_mouserx(uint8_t rxdata, uint8_t error)
 {
+  if(error)
+  {
+    mouse_rx_error = 1;
+    ps2_mouse_cbrxerror(PS2_ERROR_PARITY);
+    ps2_printf("mcr:parity!\r\n");
+  }
+
+  static uint8_t read_packet_cnt = 0;
   if(FIFO_NOTFULL(mouserbuf, MOUSERBUF_SIZE))
   {
     FIFO_WRITE(mouserbuf, MOUSERBUF_SIZE, rxdata);
-    ps2_printf("mcr:%X\r\n", (unsigned int)rxdata);
+    if(++read_packet_cnt >= read_packet_size)
+    {
+      ps2_mouse_cbrx(read_packet_cnt);
+      read_packet_cnt = 0;
+      ps2_printf("mcrp:%X\r\n", (unsigned int)rxdata);
+    }
+    else
+      ps2_printf("mcr:%X\r\n", (unsigned int)rxdata);
   }
   else
   {
-    ps2_mouse_cbrxof();
+    ps2_mouse_cbrxerror(PS2_ERROR_OVF);
     ps2_printf("mcr:full!!\r\n");
   }
 }
@@ -439,8 +475,8 @@ uint8_t ps2_mouse_datawrite(uint8_t mouse_data)
   FIFO_WRITE(mousetbuf, MOUSETBUF_SIZE, mouse_data);
   ps2_printf("mt:%X\r\n", (unsigned int)mouse_data);
 
-  if(mouse.status == PASSIVE)
-  {                                     /* lehet most küldeni */
+  if(mouse.status == PASSIVE)           /* can I send now? */
+  {
     GPIOX_CLR(PS2_MOUSECLK);            /* CLK = 0 */
     PS2_TIM->CNT = 0;                   /* Timer counter = 0 */
     PS2_TIM->CR1 |= TIM_CR1_CEN;
@@ -476,6 +512,20 @@ static inline void ps2_mouseinit(void)
 /* common GPIO EXT interrupt (clock falling edge) */
 static inline void ps2_ext_int(t_Ps2 * ps2s)
 {
+  #if PS2_PIN_DEBUG == 1
+  GPIOX_SET(PS2_PIN_DEBUG_1);
+  #endif
+
+  #if PS2_CLOCKFILTER == 1
+  if(GPIOX_IDR_PS2PIN(ps2s->clockport, ps2s->clockpinmask))
+  {
+    #if PS2_PIN_DEBUG == 1
+    GPIOX_CLR(PS2_PIN_DEBUG_1);
+    #endif
+    return;
+  }
+  #endif
+
   /* databit = ps2 data pin */
   if(GPIOX_IDR_PS2PIN(ps2s->dataport, ps2s->datapinmask))
     ps2s->databit = 1;
@@ -508,9 +558,9 @@ static inline void ps2_ext_int(t_Ps2 * ps2s)
     }
     else if(ps2s->bitcount == 1)
     {                                   /* REC stopbit */
-      if((ps2s->databit == 1) && (ps2s->error == 0))
+      if(ps2s->databit == 1)
       {                                 /* if no error and stopbit == 1 -> scancode to rec buffer */
-        ps2s->cb_rx(ps2s->data);
+        ps2s->cb_rx(ps2s->data, ps2s->error);
       }
       ps2s->error = 0;
       ps2s->parity = 0;
@@ -567,12 +617,18 @@ static inline void ps2_ext_int(t_Ps2 * ps2s)
     ps2s->bitcount = 11;
     ps2s->status = REC;
   }
+  #if PS2_PIN_DEBUG == 1
+  GPIOX_CLR(PS2_PIN_DEBUG_1);
+  #endif
 }
 
 // ----------------------------------------------------------------------------
 static inline void ps2_timer_int(t_Ps2 * ps2s)
 {
   uint8_t data8;
+  #if PS2_PIN_DEBUG == 1
+  GPIOX_SET(PS2_PIN_DEBUG_2);
+  #endif
   if(ps2s->status == SENDSTART)
   {
     if(ps2s->cb_tx(&data8))
@@ -622,6 +678,9 @@ static inline void ps2_timer_int(t_Ps2 * ps2s)
       PS2_TIM_OFF;
     }
   }
+  #if PS2_PIN_DEBUG == 1
+  GPIOX_CLR(PS2_PIN_DEBUG_2);
+  #endif
 }
 
 // ----------------------------------------------------------------------------
@@ -676,9 +735,13 @@ void PS2_TIM_HANDLER(void)
   {
     #if (PS2_KBD_EXT_N >= 1) && (PS2_MOUSE_EXT_N >= 1)
     if(kbd.timermode)
+    {
       ps2_timer_int(&kbd);
+    }
     if(mouse.timermode)
+    {
       ps2_timer_int(&mouse);
+    }
     #elif PS2_KBD_EXT_N >= 1
     ps2_timer_int(&kbd);
     #elif PS2_MOUSE_EXT_N >= 1
@@ -708,6 +771,14 @@ void ps2_init(void)
 
   NVIC->ISER[(((uint32_t)(int32_t)PS2_TIM_IRQn) >> 5UL)] = (uint32_t)(1UL << (((uint32_t)(int32_t)PS2_TIM_IRQn) & 0x1FUL));
   NVIC->IP[((uint32_t)(int32_t)PS2_TIM_IRQn)] = (uint8_t)((PS2_IRQPRIORITY << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
+
+  #if PS2_PIN_DEBUG > 0
+  RCC->AHB4ENR |= GPIOX_CLOCK(PS2_PIN_DEBUG_1) | GPIOX_CLOCK(PS2_PIN_DEBUG_2);
+  GPIOX_MODER(MODE_OUT, PS2_PIN_DEBUG_1);
+  GPIOX_MODER(MODE_OUT, PS2_PIN_DEBUG_2);
+  GPIOX_CLR(PS2_PIN_DEBUG_1);
+  GPIOX_CLR(PS2_PIN_DEBUG_2);
+  #endif
 }
 
 // ============================================================================
@@ -738,6 +809,10 @@ uint8_t ps2_kbd_getkey(uint8_t * kbd_key)
   static uint8_t state = 0, ps2_kbd_c = 0, ps2_kbd_cs = 0;
   uint8_t ps2_kbd_s;
 
+  #if PS2_PIN_DEBUG == 2
+  GPIOX_SET(PS2_PIN_DEBUG_1);
+  #endif
+
   ps2_initcheck();
 
   if(ps2_kbd_cs)
@@ -747,6 +822,9 @@ uint8_t ps2_kbd_getkey(uint8_t * kbd_key)
       *kbd_key = ps2_kbd_c;
       ps2_kbd_cs = 0;
     }
+    #if PS2_PIN_DEBUG == 2
+    GPIOX_CLR(PS2_PIN_DEBUG_1);
+    #endif
     return 1;
   }
 
@@ -754,19 +832,32 @@ uint8_t ps2_kbd_getkey(uint8_t * kbd_key)
   {
     if(ps2_kbd_dataread(&ps2_kbd_s) == 0)
     {
+      #if PS2_PIN_DEBUG == 2
+      GPIOX_CLR(PS2_PIN_DEBUG_1);
+      #endif
       return 0;                         /* nincs a billentyü pufferben semmi */
     }
     if(ps2_kbd_s == 0xE0)
     { /* két bájtos karakter */
       state |= ST_KBDMODIFIER;
       if(ps2_kbd_dataread(&ps2_kbd_s) == 0)
+      {
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_1);
+        #endif
         return 0;
+      }
     }
     if(ps2_kbd_s == 0xF0)
     { /* gomb felengedés */
       state |= ST_KBDBREAK;
       if(ps2_kbd_dataread(&ps2_kbd_s) == 0)
+      {
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_1);
+        #endif
         return 0;
+      }
     }
 
     if(state & ST_KBDBREAK)
@@ -819,6 +910,9 @@ uint8_t ps2_kbd_getkey(uint8_t * kbd_key)
         {
           ps2_kbd_cs = 1;
         }
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_1);
+        #endif
         return 1;
       }
       else
@@ -872,6 +966,9 @@ uint8_t ps2_kbd_getkey(uint8_t * kbd_key)
         {
           ps2_kbd_cs = 1;
         }
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_1);
+        #endif
         return 1;
       } /* else (state & MODIFIER) */
     } /* else (state & BREAK) */
@@ -942,7 +1039,7 @@ uint8_t ps2_mouse_readdatapacket(uint8_t * data8, uint32_t dsize, uint32_t timeo
 {
   #if MOUSE_METHOD == 1
 
-  while(!(FIFO_LEN(mouserbuf) >= dsize))
+  while(FIFO_LEN(mouserbuf) < dsize)
   {
     if(PS2_GETTIME() - time_data_packet > timeout)
       return 0;
@@ -959,6 +1056,7 @@ uint8_t ps2_mouse_readdatapacket(uint8_t * data8, uint32_t dsize, uint32_t timeo
   uint8_t tmp8;
   if(FIFO_LEN(mouserbuf) >= dsize)
   {
+    ps2_printf("mrx: %d, %d\r\n", (unsigned int)time_now, (unsigned int)dsize);
     while(dsize--)
     {
       ps2_mouse_dataread(data8);
@@ -970,7 +1068,8 @@ uint8_t ps2_mouse_readdatapacket(uint8_t * data8, uint32_t dsize, uint32_t timeo
   {
     if(time_now - time_data_packet > timeout)
     { /* timeout */
-      while(ps2_mouse_dataread(&tmp8));/* receive buffer empty */
+      ps2_printf("mrx_tout: %d, %d\r\n", (unsigned int)time_now, (unsigned int)dsize);
+      while(ps2_mouse_dataread(&tmp8)); /* receive buffer emptying */
       return 0;
     }
     else
@@ -984,9 +1083,12 @@ uint8_t ps2_mouse_readdatapacket(uint8_t * data8, uint32_t dsize, uint32_t timeo
 uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
 {
   static uint8_t    mouse_status = MOUSE_UNINITIALIZATION;
-  static uint8_t    read_packet_size = 0;
   int16_t           tmp16;
   uint8_t           tmp8;
+
+  #if PS2_PIN_DEBUG == 2
+  GPIOX_SET(PS2_PIN_DEBUG_2);
+  #endif
 
   ps2_initcheck();
 
@@ -1004,6 +1106,9 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     { /* complett pack size */
       if(data_packet[0] != 0xFA)
       {
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_2);
+        #endif
         return 0;
       }
 
@@ -1038,6 +1143,10 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
         mouse_data->zmove = (int8_t)data_packet[4];
         mouse_data->btns = data_packet[1] & 0x07;
       }
+
+      #if PS2_PIN_DEBUG == 2
+      GPIOX_CLR(PS2_PIN_DEBUG_2);
+      #endif
       return 1;
     }
     else if(tmp8 == 0)
@@ -1091,6 +1200,9 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       mouse_status = MOUSE_SETRATE_200;
   }
 
+  #if PS2_PIN_DEBUG == 2
+  GPIOX_CLR(PS2_PIN_DEBUG_2);
+  #endif
   return 0;
 
   #elif MOUSE_METHOD == 2
@@ -1105,6 +1217,9 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     { /* complett pack size */
       if(data_packet[0] != 0xFA)
       {
+        #if PS2_PIN_DEBUG == 2
+        GPIOX_CLR(PS2_PIN_DEBUG_2);
+        #endif
         return 0;
       }
 
@@ -1141,6 +1256,9 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       }
       ps2_mouse_datawrite(0xEB);        /* send the read data command */
       time_data_packet = time_now;
+      #if PS2_PIN_DEBUG == 2
+      GPIOX_CLR(PS2_PIN_DEBUG_2);
+      #endif
       return 1;
     }
     else if(tmp8 == 0)
@@ -1162,7 +1280,7 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       else if(data_packet[1] == 0x03)
         read_packet_size = 5;
     }
-    else
+    else if(tmp8 == 0)
       mouse_status = MOUSE_UNINITIALIZATION;
   }
 
@@ -1190,7 +1308,7 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       }
       time_data_packet = time_now;
     }
-    else
+    else if(tmp8 == 0)
       mouse_status = MOUSE_UNINITIALIZATION;
   }
 
@@ -1220,21 +1338,36 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     mouse_status = MOUSE_RESET;
     ps2_printf("mouse reset\r\n");
   }
-
+  #if PS2_PIN_DEBUG == 2
+  GPIOX_CLR(PS2_PIN_DEBUG_2);
+  #endif
   return 0;
 
   #elif MOUSE_METHOD == 3
 
-  static uint8_t    pre_mouse_buttons;
-  uint32_t fifo_len;
+  static uint8_t    pre_mouse_buttons, id;
+  uint32_t          fifo_len;
   uint8_t           data_packet[4];
 
+  #if PS2_PRINTF_DEBUG == 1
+  static uint32_t   n = 0;
+  n++;
+  #endif
+
   time_now = PS2_GETTIME();
+
+  if(mouse_rx_error)
+  {
+    mouse_status = MOUSE_UNINITIALIZATION;
+    mouse_rx_error = 0;
+    ps2_printf("mrx_parityerr: %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+  }
+
   if(mouse_status == MOUSE_GETMOVE)
   {
     fifo_len = FIFO_LEN(mouserbuf);
     if(fifo_len >= read_packet_size)
-    { /* complett pack size */
+    { /* completed pack size */
       mouse_data->xmove = 0;
       mouse_data->ymove = 0;
       mouse_data->zmove = 0;
@@ -1282,19 +1415,21 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
         {
           pre_mouse_buttons = mouse_data->btns;
           time_data_packet = time_now;
+          #if PS2_PIN_DEBUG == 2
+          GPIOX_CLR(PS2_PIN_DEBUG_2);
+          #endif
           return 1;
         }
       }
     }
+    else if(fifo_len <= 1)
+    {
+      time_data_packet = time_now;
+    }
     else
     {
-      if(fifo_len)
-      {
-        if(time_now - time_data_packet > PS2_MOUSE_READTIME)
-          while(ps2_mouse_dataread(&tmp8)); /* receive buffer empty */
-      }
-      else
-        time_data_packet = time_now;
+      if(time_now - time_data_packet > PS2_MOUSE_READTIME)
+        while(ps2_mouse_dataread(&tmp8)); /* if big time space -> receive buffer empty (sync repair) */
     }
   }
 
@@ -1305,8 +1440,9 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     {
       time_data_packet = time_now;
       mouse_status = MOUSE_GETMOVE;
+      read_packet_size = id;
     }
-    else
+    else if(tmp8 == 0)
       mouse_status = MOUSE_UNINITIALIZATION;
   }
 
@@ -1316,14 +1452,16 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     if((tmp8 == 2) && (data_packet[0] == 0xFA) && ((data_packet[1] == 0x00) || (data_packet[1] == 0x03)))
     { /* FA 00 or FA 03 */
       ps2_mouse_datawrite(0xF4);            /* enable data reporting */
+      ps2_printf("mtx:0xF4, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
       time_data_packet = time_now;
       mouse_status = MOUSE_ONDATAREPORT;
       if(data_packet[1] == 0x00)
-        read_packet_size = 3;
+        id = 3;
       else if(data_packet[1] == 0x03)
-        read_packet_size = 4;
+        id = 4;
+      read_packet_size = 1;
     }
-    else
+    else if(tmp8 == 0)
       mouse_status = MOUSE_UNINITIALIZATION;
   }
 
@@ -1336,22 +1474,37 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       {
         mouse_status++;
         if(mouse_status == MOUSE_RATE_200)
+        {
           ps2_mouse_datawrite(0xC8);    /* 200 */
+          ps2_printf("mtx:0xC8, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+        }
         else if(mouse_status == MOUSE_RATE_100)
+        {
           ps2_mouse_datawrite(0x64);    /* 100 */
+          ps2_printf("mtx:0x64, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+        }
         else if(mouse_status == MOUSE_RATE_80)
+        {
           ps2_mouse_datawrite(0x50);    /* 80 */
+          ps2_printf("mtx:0x50, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+
+        }
         else
+        {
           ps2_mouse_datawrite(0xF3);    /* set sample rate */
+          ps2_printf("mtx:0xF3, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+        }
       }
       else
       {
         ps2_mouse_datawrite(0xF2);      /* mouse ID */
+        ps2_printf("mtx:0xF2, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
         mouse_status = MOUSE_GETID;
+        read_packet_size = 2;
       }
       time_data_packet = time_now;
     }
-    else
+    else if(tmp8 == 0)
       mouse_status = MOUSE_UNINITIALIZATION;
   }
 
@@ -1363,8 +1516,10 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
       if((data_packet[0] == 0xFA) && (data_packet[1] == 0xAA) && (data_packet[2] == 0x00))
       {
         ps2_mouse_datawrite(0xF3);      /* set sample rate */
+        ps2_printf("mtx:0xF3, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
         time_data_packet = time_now;
         mouse_status = MOUSE_SETRATE_200;
+        read_packet_size = 1;
       }
     }
     else if(tmp8 == 0)
@@ -1379,9 +1534,12 @@ uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data)
     ps2_mouse_datawrite(0xFF);          /* mouse reset */
     time_data_packet = time_now;
     mouse_status = MOUSE_RESET;
-    ps2_printf("mouse reset\r\n");
+    ps2_printf("mtx:0xFF, %d, %d\r\n", (unsigned int)time_now, (unsigned int)n);
+    read_packet_size = 1;
   }
-
+  #if PS2_PIN_DEBUG == 2
+  GPIOX_CLR(PS2_PIN_DEBUG_2);
+  #endif
   return 0;
 
   #endif
