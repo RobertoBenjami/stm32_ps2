@@ -1,4 +1,5 @@
-/* stm32f103 Timer one shot mode init test */
+/* PS2 keyboard and mouse test application */
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -24,7 +25,9 @@ void ps2_kbd_cbrxerror(uint32_t rx_errorcode)
 // ----------------------------------------------------------------------------
 void ps2_mouse_cbrx(uint32_t rx_datanum)
 {
+  #if MOUSE_METHOD == 3
   printf("mouse packet size:%d\r\n", (unsigned int)rx_datanum);
+  #endif
 }
 
 void ps2_mouse_cbrxerror(uint32_t rx_errorcode)
