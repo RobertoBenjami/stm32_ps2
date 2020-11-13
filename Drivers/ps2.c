@@ -50,7 +50,7 @@
    - pin debug processor usage time: 2 (PS2_PIN_DEBUG_1 <- keyboard, PS2_PIN_DEBUG_2 <- mouse) */
 #define PS2_PIN_DEBUG           0
 
-/* pin debug pins (only if PS2_PIN_DEBUG == 1) */
+/* pin debug pins (only if PS2_PIN_DEBUG >= 1) */
 #define PS2_PIN_DEBUG_1      E, 0
 #define PS2_PIN_DEBUG_2      E, 1
 
