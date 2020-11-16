@@ -164,8 +164,8 @@ extern "C" {
 #define PS2_KBD_EXT_IRQHandler  EXTI2_3_IRQHandler
 #else
 #define PS2_KBD_EXT_N    3
-#define PS2_KBD_EXT_IRQ  EXTI9_15_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI9_15_IRQHandler
+#define PS2_KBD_EXT_IRQ  EXTI4_15_IRQn
+#define PS2_KBD_EXT_IRQHandler  EXTI4_15_IRQHandler
 #endif
 
 #endif
