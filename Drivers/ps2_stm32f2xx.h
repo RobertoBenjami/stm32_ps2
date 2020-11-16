@@ -1,7 +1,7 @@
-/* stm32f4xx processor family dependent things */
+/* stm32f2xx processor family dependent things */
 
-#ifndef __PS2_STM32F4XX_H__
-#define __PS2_STM32F4XX_H__
+#ifndef __PS2_STM32F2XX_H__
+#define __PS2_STM32F2XX_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -324,4 +324,4 @@ extern "C" {
 }
 #endif
 
-#endif  /* __PS2_STM32F4XX_H__ */
+#endif  /* __PS2_STM32F2XX_H__ */

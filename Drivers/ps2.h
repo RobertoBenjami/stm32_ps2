@@ -67,7 +67,7 @@ extern "C" {
            look at the processor-specific header */
 #define PS2_TIM           16
 
-/* timer clock source frequency (default: SystemCoreClock >> 1) */
+/* timer clock source frequency (default: SystemCoreClock or SystemCoreClock >> 1) */
 #define PS2_TIM_CLK       SystemCoreClock >> 1
 
 /* get milliseconds function name

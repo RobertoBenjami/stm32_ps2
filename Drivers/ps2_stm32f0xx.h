@@ -1,7 +1,7 @@
-/* stm32f4xx processor family dependent things */
+/* stm32f0xx processor family dependent things */
 
-#ifndef __PS2_STM32F4XX_H__
-#define __PS2_STM32F4XX_H__
+#ifndef __PS2_STM32F0XX_H__
+#define __PS2_STM32F0XX_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -70,8 +70,7 @@ extern "C" {
 #define GPIOX_PINSRC_(a, b)   GPIO_PinSource ## b
 #define GPIOX_PINSRC(a)       GPIOX_PINSRC_(a)
 
-/* GPIO Ports Clock Enable */
-#define GPIOX_CLOCK_(a, b)    RCC_AHB1ENR_GPIO ## a ## EN
+#define GPIOX_CLOCK_(a, b)    RCC_AHBENR_GPIO ## a ## EN
 #define GPIOX_CLOCK(a)        GPIOX_CLOCK_(a)
 
 #define GPIOX_PORTNUM_A       1
@@ -97,8 +96,8 @@ extern "C" {
 #undef  PS2_TIM
 #define PS2_TIM               TIM1
 #define PS2_TIM_CLKON         RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
-#define PS2_TIM_IRQn          TIM1_UP_TIM10_IRQn
-#define PS2_TIM_HANDLER       TIM1_UP_TIM10_IRQHandler
+#define PS2_TIM_IRQn          TIM1_BRK_UP_TRG_COM_IRQn
+#define PS2_TIM_HANDLER       TIM1_BRK_UP_TRG_COM_IRQHandler
 #elif PS2_TIM == 2
 #undef  PS2_TIM
 #define PS2_TIM               TIM2
@@ -111,18 +110,6 @@ extern "C" {
 #define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM3EN;
 #define PS2_TIM_IRQn          TIM3_IRQn
 #define PS2_TIM_HANDLER       TIM3_IRQHandler
-#elif PS2_TIM == 4
-#undef  PS2_TIM
-#define PS2_TIM               TIM4
-#define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM4EN;
-#define PS2_TIM_IRQn          TIM4_IRQn
-#define PS2_TIM_HANDLER       TIM4_IRQHandler
-#elif PS2_TIM == 5
-#undef  PS2_TIM
-#define PS2_TIM               TIM5
-#define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM5EN;
-#define PS2_TIM_IRQn          TIM5_IRQn
-#define PS2_TIM_HANDLER       TIM5_IRQHandler
 #elif PS2_TIM == 6
 #undef  PS2_TIM
 #define PS2_TIM               TIM6
@@ -135,48 +122,12 @@ extern "C" {
 #define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM7EN;
 #define PS2_TIM_IRQn          TIM7_IRQn
 #define PS2_TIM_HANDLER       TIM7_IRQHandler
-#elif PS2_TIM == 8
-#undef  PS2_TIM
-#define PS2_TIM               TIM8
-#define PS2_TIM_CLKON         RCC->APB2ENR |= RCC_APB2ENR_TIM8EN;
-#define PS2_TIM_IRQn          TIM8_UP_TIM13_IRQn
-#define PS2_TIM_HANDLER       TIM8_UP_TIM13_IRQHandler
-#elif PS2_TIM == 9
-#undef  PS2_TIM
-#define PS2_TIM               TIM9
-#define PS2_TIM_CLKON         RCC->APB2ENR |= RCC_APB2ENR_TIM9EN;
-#define PS2_TIM_IRQn          TIM1_BRK_TIM9_IRQn
-#define PS2_TIM_HANDLER       TIM1_BRK_TIM9_IRQHandler
-#elif PS2_TIM == 10
-#undef  PS2_TIM
-#define PS2_TIM               TIM10
-#define PS2_TIM_CLKON         RCC->APB2ENR |= RCC_APB2ENR_TIM10EN;
-#define PS2_TIM_IRQn          TIM1_UP_TIM10_IRQn
-#define PS2_TIM_HANDLER       TIM1_UP_TIM10_IRQHandler
-#elif PS2_TIM == 11
-#undef  PS2_TIM
-#define PS2_TIM               TIM11
-#define PS2_TIM_CLKON         RCC->APB2ENR |= RCC_APB2ENR_TIM11EN;
-#define PS2_TIM_IRQn          TIM1_TRG_COM_TIM11_IRQn
-#define PS2_TIM_HANDLER       TIM1_TRG_COM_TIM11_IRQHandler
-#elif PS2_TIM == 12
-#undef  PS2_TIM
-#define PS2_TIM               TIM12
-#define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM12EN;
-#define PS2_TIM_IRQn          TIM8_BRK_TIM12_IRQn
-#define PS2_TIM_HANDLER       TIM8_BRK_TIM12_IRQHandler
-#elif PS2_TIM == 13
-#undef  PS2_TIM
-#define PS2_TIM               TIM13
-#define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM13EN;
-#define PS2_TIM_IRQn          TIM8_UP_TIM13_IRQn
-#define PS2_TIM_HANDLER       TIM8_UP_TIM13_IRQHandler
 #elif PS2_TIM == 14
 #undef  PS2_TIM
 #define PS2_TIM               TIM14
 #define PS2_TIM_CLKON         RCC->APB1ENR |= RCC_APB1ENR_TIM14EN;
-#define PS2_TIM_IRQn          TIM8_TRG_COM_TIM14_IRQn
-#define PS2_TIM_HANDLER       TIM8_TRG_COM_TIM14_IRQHandler
+#define PS2_TIM_IRQn          TIM14_IRQn
+#define PS2_TIM_HANDLER       TIM14_IRQHandler
 #elif PS2_TIM == 15
 #undef  PS2_TIM
 #define PS2_TIM               TIM15
@@ -203,34 +154,18 @@ extern "C" {
 /* Keyboard EXTI config */
 #if (GPIOX_PORTNUM(PS2_KBDCLK) >= GPIOX_PORTNUM_A) && (GPIOX_PORTNUM(PS2_KBDDATA) >= GPIOX_PORTNUM_A)
 
-#if (GPIOX_PIN(PS2_KBDCLK)) == 0
+#if (GPIOX_PIN(PS2_KBDCLK)) == 0 || (GPIOX_PIN(PS2_KBDCLK)) == 1
 #define PS2_KBD_EXT_N    1
-#define PS2_KBD_EXT_IRQ  EXTI0_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI0_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) == 1
+#define PS2_KBD_EXT_IRQ  EXTI0_1_IRQn
+#define PS2_KBD_EXT_IRQHandler  EXTI0_1_IRQHandler
+#elif (GPIOX_PIN(PS2_KBDCLK)) == 2 || (GPIOX_PIN(PS2_KBDCLK)) == 3
 #define PS2_KBD_EXT_N    2
-#define PS2_KBD_EXT_IRQ  EXTI1_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI1_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) == 2
+#define PS2_KBD_EXT_IRQ  EXTI2_3_IRQn
+#define PS2_KBD_EXT_IRQHandler  EXTI2_3_IRQHandler
+#else
 #define PS2_KBD_EXT_N    3
-#define PS2_KBD_EXT_IRQ  EXTI2_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI2_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) == 3
-#define PS2_KBD_EXT_N    4
-#define PS2_KBD_EXT_IRQ  EXTI3_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI3_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) == 4
-#define PS2_KBD_EXT_N    5
-#define PS2_KBD_EXT_IRQ  EXTI4_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI4_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) <= 9
-#define PS2_KBD_EXT_N    6
-#define PS2_KBD_EXT_IRQ  EXTI9_5_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI9_5_IRQHandler
-#elif (GPIOX_PIN(PS2_KBDCLK)) <= 15
-#define PS2_KBD_EXT_N    7
-#define PS2_KBD_EXT_IRQ  EXTI15_10_IRQn
-#define PS2_KBD_EXT_IRQHandler  EXTI15_10_IRQHandler
+#define PS2_KBD_EXT_IRQ  EXTI9_15_IRQn
+#define PS2_KBD_EXT_IRQHandler  EXTI9_15_IRQHandler
 #endif
 
 #endif
@@ -239,34 +174,18 @@ extern "C" {
 /* Mouse EXTI config */
 #if (GPIOX_PORTNUM(PS2_MOUSECLK) >= GPIOX_PORTNUM_A) && (GPIOX_PORTNUM(PS2_MOUSEDATA) >= GPIOX_PORTNUM_A)
 
-#if (GPIOX_PIN(PS2_MOUSECLK)) == 0
+#if (GPIOX_PIN(PS2_MOUSECLK)) == 0 || (GPIOX_PIN(PS2_MOUSECLK)) == 1
 #define PS2_MOUSE_EXT_N    1
-#define PS2_MOUSE_EXT_IRQ  EXTI0_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI0_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) == 1
+#define PS2_MOUSE_EXT_IRQ  EXTI0_1_IRQn
+#define PS2_MOUSE_EXT_IRQHandler  EXTI0_1_IRQHandler
+#elif (GPIOX_PIN(PS2_MOUSECLK)) == 2 || (GPIOX_PIN(PS2_MOUSECLK)) == 3
 #define PS2_MOUSE_EXT_N    2
-#define PS2_MOUSE_EXT_IRQ  EXTI1_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI1_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) == 2
+#define PS2_MOUSE_EXT_IRQ  EXTI2_3_IRQn
+#define PS2_MOUSE_EXT_IRQHandler  EXTI2_3_IRQHandler
+#else
 #define PS2_MOUSE_EXT_N    3
-#define PS2_MOUSE_EXT_IRQ  EXTI2_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI2_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) == 3
-#define PS2_MOUSE_EXT_N    4
-#define PS2_MOUSE_EXT_IRQ  EXTI3_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI3_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) == 4
-#define PS2_MOUSE_EXT_N    5
-#define PS2_MOUSE_EXT_IRQ  EXTI4_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI4_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) <= 9
-#define PS2_MOUSE_EXT_N    6
-#define PS2_MOUSE_EXT_IRQ  EXTI9_5_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI9_5_IRQHandler
-#elif (GPIOX_PIN(PS2_MOUSECLK)) <= 15
-#define PS2_MOUSE_EXT_N    7
-#define PS2_MOUSE_EXT_IRQ  EXTI15_10_IRQn
-#define PS2_MOUSE_EXT_IRQHandler  EXTI15_10_IRQHandler
+#define PS2_MOUSE_EXT_IRQ  EXTI4_15_IRQn
+#define PS2_MOUSE_EXT_IRQHandler  EXTI4_15_IRQHandler
 #endif
 
 #endif
@@ -275,16 +194,16 @@ extern "C" {
 /* RCC processor family dependent things */
 #if (PS2_KBD_EXT_N >= 1) && (PS2_MOUSE_EXT_N >= 1)
 #define RCC_INIT  {                                                       \
-  RCC->AHB1ENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA) |    \
-                  GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
+  RCC->AHBENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA) |    \
+                 GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;                                   }
 #elif PS2_KBD_EXT_N >= 1
 #define RCC_INIT  {                                                       \
-  RCC->AHB1ENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA);     \
+  RCC->AHBENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA);     \
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;                                   }
 #elif PS2_MOUSE_EXT_N >= 1
 #define RCC_INIT  {                                                       \
-  RCC->AHB1ENR |= GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
+  RCC->AHBENR |= GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
   RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;                                   }
 #endif
 
@@ -324,4 +243,4 @@ extern "C" {
 }
 #endif
 
-#endif  /* __PS2_STM32F4XX_H__ */
+#endif  /* __PS2_STM32F0XX_H__ */
