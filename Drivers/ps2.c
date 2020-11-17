@@ -1,6 +1,6 @@
 /* PS/2 keyboard and mouse interface driver
    author: Roberto Benjami
-   version: 2020.11.12
+   version: 2020.11.17
 */
 
 #include <stdint.h>
@@ -48,11 +48,11 @@
 /* - pin debug off: 0
    - pin debug irq: 1 (PS2_PIN_DEBUG_1 <- EXT interrupt, PS2_PIN_DEBUG_2 <- TIM interrupt)
    - pin debug processor usage time: 2 (PS2_PIN_DEBUG_1 <- keyboard, PS2_PIN_DEBUG_2 <- mouse) */
-#define PS2_PIN_DEBUG           0
+#define PS2_PIN_DEBUG           1
 
 /* pin debug pins (only if PS2_PIN_DEBUG >= 1) */
-#define PS2_PIN_DEBUG_1      E, 0
-#define PS2_PIN_DEBUG_2      E, 1
+#define PS2_PIN_DEBUG_1      B, 8
+#define PS2_PIN_DEBUG_2      B, 9
 
 /* - clock filter off: 0
  * - clock filter on:  1 */
@@ -773,9 +773,9 @@ void ps2_init(void)
   NVIC->IP[((uint32_t)(int32_t)PS2_TIM_IRQn)] = (uint8_t)((PS2_IRQPRIORITY << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL);
 
   #if PS2_PIN_DEBUG > 0
-  RCC->AHB4ENR |= GPIOX_CLOCK(PS2_PIN_DEBUG_1) | GPIOX_CLOCK(PS2_PIN_DEBUG_2);
-  GPIOX_MODER(MODE_OUT, PS2_PIN_DEBUG_1);
-  GPIOX_MODER(MODE_OUT, PS2_PIN_DEBUG_2);
+  RCC_PIN_DEBUG_INIT;
+  GPIOX_PPOUT(PS2_PIN_DEBUG_1);
+  GPIOX_PPOUT(PS2_PIN_DEBUG_2);
   GPIOX_CLR(PS2_PIN_DEBUG_1);
   GPIOX_CLR(PS2_PIN_DEBUG_2);
   #endif
