@@ -211,14 +211,11 @@ extern "C" {
 
 // ----------------------------------------------------------------------------
 /* GPIO processor family dependent things */
-#define GPIOX_PPOUT(a) {        \
-  GPIOX_MODER_(MODE_OUT, a);    }
-#define GPIOX_ODOUT(a) {        \
-  GPIOX_OTYPER_(MODE_OT_OD, a); \
-  GPIOX_MODER_(MODE_OUT, a);    }
+#define GPIOX_PPOUT(a)          GPIOX_MODER_(MODE_OUT, a)
+#define GPIOX_ODOUT(a)          { GPIOX_OTYPER_(MODE_OT_OD, a); GPIOX_MODER_(MODE_OUT, a); }
 #define GPIOX_SET_PS2PIN(a, b)  a->BSRR = b
 #define GPIOX_CLR_PS2PIN(a, b)  a->BSRR = b << 16
-#define GPIOX_IDR_PS2PIN(a, b) a->IDR & b
+#define GPIOX_IDR_PS2PIN(a, b)  a->IDR & b
 
 // ----------------------------------------------------------------------------
 /* TIMER processor family dependent things */

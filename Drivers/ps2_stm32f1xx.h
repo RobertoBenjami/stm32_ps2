@@ -243,11 +243,13 @@ extern "C" {
 
 // ----------------------------------------------------------------------------
 /* RCC processor family dependent things */
+#define RCC_PIN_DEBUG_INIT  RCC->AHBENR |= GPIOX_CLOCK(PS2_PIN_DEBUG_1) | GPIOX_CLOCK(PS2_PIN_DEBUG_2)
+
 #if (PS2_KBD_EXT_N >= 1) && (PS2_MOUSE_EXT_N >= 1)
 #define RCC_INIT  { \
-  RCC->AHBENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA) | \
-  GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
-  RCC->APB2ENR |= RCC_APB2ENR_AFIOEN; }
+  RCC->AHBENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA) |    \
+                 GPIOX_CLOCK(PS2_MOUSECLK) | GPIOX_CLOCK(PS2_MOUSEDATA); \
+  RCC->APB2ENR |= RCC_APB2ENR_AFIOEN;                                    }
 #elif PS2_KBD_EXT_N >= 1
 #define RCC_INIT  { \
   RCC->AHBENR |= GPIOX_CLOCK(PS2_KBDCLK) | GPIOX_CLOCK(PS2_KBDDATA) | RCC_APB2ENR_AFIOEN; \
@@ -260,6 +262,7 @@ extern "C" {
 
 // ----------------------------------------------------------------------------
 /* GPIO processor family dependent things */
+#define GPIOX_PPOUT(a)          GPIOX_MODE_(MODE_PP_OUT_2MHZ, a)
 #define GPIOX_ODOUT(a)          GPIOX_MODE_(MODE_OD_OUT_2MHZ, a)
 #define GPIOX_SET_PS2PIN(a, b)  a->BSRR = b
 #define GPIOX_CLR_PS2PIN(a, b)  a->BSRR = b << 16
