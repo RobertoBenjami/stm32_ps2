@@ -48,7 +48,7 @@
 /* - pin debug off: 0
    - pin debug irq: 1 (PS2_PIN_DEBUG_1 <- EXT interrupt, PS2_PIN_DEBUG_2 <- TIM interrupt)
    - pin debug processor usage time: 2 (PS2_PIN_DEBUG_1 <- keyboard, PS2_PIN_DEBUG_2 <- mouse) */
-#define PS2_PIN_DEBUG           1
+#define PS2_PIN_DEBUG           0
 
 /* pin debug pins (only if PS2_PIN_DEBUG >= 1) */
 #define PS2_PIN_DEBUG_1      B, 8
