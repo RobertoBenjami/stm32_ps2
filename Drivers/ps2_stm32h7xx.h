@@ -7,6 +7,17 @@
 extern "C" {
 #endif
 
+/*----------------------------------------------------------------------------
+   CMSIS compatible chapter
+----------------------------------------------------------------------------*/
+#if     __STM32H7xx_CMSIS_DEVICE_VERSION == 0
+#undef  __STM32H7xx_CMSIS_DEVICE_VERSION
+#define __STM32H7xx_CMSIS_DEVICE_VERSION  ((__STM32H7xx_CMSIS_DEVICE_VERSION_MAIN << 24)\
+                                          |(__STM32H7xx_CMSIS_DEVICE_VERSION_SUB1 << 16)\
+                                          |(__STM32H7xx_CMSIS_DEVICE_VERSION_SUB2 << 8 )\
+                                          |(__STM32H7xx_CMSIS_DEVICE_VERSION_RC))
+#endif
+
 //-----------------------------------------------------------------------------
 /* GPIO mode */
 
@@ -52,11 +63,19 @@ extern "C" {
 #define GPIOX_PUPDR_(a,b,c)   GPIO ## b->PUPDR = (GPIO ## b->PUPDR & ~(3 << (2 * c))) | (a << (2 * c));
 #define GPIOX_PUPDR(a, b)     GPIOX_PUPDR_(a, b)
 
+#if __STM32H7xx_CMSIS_DEVICE_VERSION >= 0x01040000
+#define GPIOX_SET_(a, b)      GPIO ## a ->BSRR = 1 << b
+#define GPIOX_SET(a)          GPIOX_SET_(a)
+
+#define GPIOX_CLR_(a, b)      GPIO ## a ->BSRR = 1 << (b + 16)
+#define GPIOX_CLR(a)          GPIOX_CLR_(a)
+#else
 #define GPIOX_SET_(a, b)      GPIO ## a ->BSRRL = 1 << b
 #define GPIOX_SET(a)          GPIOX_SET_(a)
 
 #define GPIOX_CLR_(a, b)      GPIO ## a ->BSRRH = 1 << b
 #define GPIOX_CLR(a)          GPIOX_CLR_(a)
+#endif
 
 #define GPIOX_IDR_(a, b)      (GPIO ## a ->IDR & (1 << b))
 #define GPIOX_IDR(a)          GPIOX_IDR_(a)
@@ -128,7 +147,7 @@ extern "C" {
 #define PS2_TIM               TIM6
 #define PS2_TIM_CLKON         RCC->APB1LENR |= RCC_APB1LENR_TIM6EN;
 #define PS2_TIM_IRQn          TIM6_DAC_IRQn
-#define PS2_TIM_HANDLER       TIM6_IRQHandler
+#define PS2_TIM_HANDLER       TIM6_DAC_IRQHandler
 #elif PS2_TIM == 7
 #undef  PS2_TIM
 #define PS2_TIM               TIM7
@@ -276,8 +295,13 @@ extern "C" {
 /* GPIO processor family dependent things */
 #define GPIOX_PPOUT(a)          GPIOX_MODER_(MODE_OUT, a)
 #define GPIOX_ODOUT(a)          {GPIOX_OTYPER_(MODE_OT_OD, a); GPIOX_MODER_(MODE_OUT, a);}
+#if __STM32H7xx_CMSIS_DEVICE_VERSION >= 0x01040000
+#define GPIOX_SET_PS2PIN(a, b)  a->BSRR = b
+#define GPIOX_CLR_PS2PIN(a, b)  a->BSRR = (b << 16)
+#else
 #define GPIOX_SET_PS2PIN(a, b)  a->BSRRL = b
 #define GPIOX_CLR_PS2PIN(a, b)  a->BSRRH = b
+#endif
 #define GPIOX_IDR_PS2PIN(a, b)  a->IDR & b
 
 // ----------------------------------------------------------------------------
