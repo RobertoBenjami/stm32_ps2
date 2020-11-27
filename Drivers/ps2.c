@@ -200,7 +200,7 @@ typedef struct
 // ----------------------------------------------------------------------------
 uint8_t ps2_inited = 0;                 /* 0: not intited (must be called the ps2_init), 1: after init */
 
-inline void ps2_initcheck(void)
+static inline void ps2_initcheck(void)
 {
   if(!ps2_inited)
   {
