@@ -161,7 +161,7 @@ extern "C" {
 //-----------------------------------------------------------------------------
 /* keyboard */
 uint8_t ps2_kbd_getkey(uint8_t * kbd_key);        /* get keyboard ascII code (if return == 1 -> *kbd_key = keyboard ascII code) */
-uint8_t ps2_kbd_getscan(uint8_t * kbd_scan);      /* get keyboard scan code (if return == 1 -> *kbd_key = keyboard scan code) */
+uint8_t ps2_kbd_getscan(uint8_t * kbd_scan);      /* get keyboard scan code (if return == 1 -> *kbd_scan = keyboard scan code) */
 uint8_t ps2_kbd_ctrlstatus(void);                 /* get keyboard ctrl status (return = keyboard modify buttons statusbits) */
 uint8_t ps2_kbd_lockstatus(void);                 /* get keyboard lock status (return = keyboard lock buttons statusbits) */
 uint8_t ps2_kbd_setlocks(uint8_t kbd_locks);      /* set keyboard lock status (return = keyboard lock buttons statusbits) */
