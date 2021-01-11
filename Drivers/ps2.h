@@ -160,27 +160,27 @@ extern "C" {
 
 //-----------------------------------------------------------------------------
 /* keyboard */
-uint8_t ps2_kbd_getkey(uint8_t * kbd_key);
-uint8_t ps2_kbd_getscan(uint8_t * kbd_scan);
-uint8_t ps2_kbd_ctrlstatus(void);
-uint8_t ps2_kbd_lockstatus(void);
-uint8_t ps2_kbd_setlocks(uint8_t kbd_locks);
-__weak  void ps2_kbd_cbrx(uint8_t rx_data);
-__weak  void ps2_kbd_cbrxerror(uint32_t rx_errorcode);
+uint8_t ps2_kbd_getkey(uint8_t * kbd_key);        /* get keyboard ascII code (if return == 1 -> *kbd_key = keyboard ascII code) */
+uint8_t ps2_kbd_getscan(uint8_t * kbd_scan);      /* get keyboard scan code (if return == 1 -> *kbd_key = keyboard scan code) */
+uint8_t ps2_kbd_ctrlstatus(void);                 /* get keyboard ctrl status (return = keyboard modify buttons statusbits) */
+uint8_t ps2_kbd_lockstatus(void);                 /* get keyboard lock status (return = keyboard lock buttons statusbits) */
+uint8_t ps2_kbd_setlocks(uint8_t kbd_locks);      /* set keyboard lock status (return = keyboard lock buttons statusbits) */
+__weak  void ps2_kbd_cbrx(uint8_t rx_data);       /* callback function for keyboard RX data (scan codes) */
+__weak  void ps2_kbd_cbrxerror(uint32_t rx_errorcode); /* callback function for keyboard RX error (see PS2_ERROR... macros) */
 
 //-----------------------------------------------------------------------------
 /* mouse */
 typedef struct
 {
-  int16_t  xmove;
-  int16_t  ymove;
-  int16_t  zmove;
-  int8_t   btns;
+  int16_t  xmove;   /* X coordinate */
+  int16_t  ymove;   /* Y coordinate */
+  int16_t  zmove;   /* mouse wheel */
+  int8_t   btns;    /* buttons (in 3 smallest bits) */
 }ps2_MouseData;
 
-uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data);
-__weak  void ps2_mouse_cbrx(uint32_t rx_datanum);
-__weak  void ps2_mouse_cbrxerror(uint32_t rx_errorcode);
+uint8_t ps2_mouse_getmove(ps2_MouseData * mouse_data);    /* get mouse move data (if return == 1 -> *mouse_data = mouse move data) */
+__weak  void ps2_mouse_cbrx(uint32_t rx_datanum);         /* callback function for mouse RX data */
+__weak  void ps2_mouse_cbrxerror(uint32_t rx_errorcode);  /* callback function for mouse RX error (see PS2_ERROR... macros) */
 
 #ifdef __cplusplus
 }
