@@ -64,13 +64,6 @@ extern "C" {
 #define GPIOX_LINE_(a, b)     EXTI_Line ## b
 #define GPIOX_LINE(a)         GPIOX_LINE_(a)
 
-#define GPIOX_PORTSRC_(a, b)  GPIO_PortSourceGPIO ## a
-#define GPIOX_PORTSRC(a)      GPIOX_PORTSRC_(a)
-
-#define GPIOX_PINSRC_(a, b)   GPIO_PinSource ## b
-#define GPIOX_PINSRC(a)       GPIOX_PINSRC_(a)
-
-/* GPIO Ports Clock Enable */
 #define GPIOX_CLOCK_(a, b)    RCC_AHBENR_GPIO ## a ## EN
 #define GPIOX_CLOCK(a)        GPIOX_CLOCK_(a)
 
