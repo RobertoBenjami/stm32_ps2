@@ -60,12 +60,12 @@ extern "C" {
 /* keyboard EXTI, mouse EXTI, timer interrupt priority (0..15)
      note: 0 = the highest priority, 15 = the lowest priority
            (if freertos: see the FreeRTOSConfig.h) */
-#define PS2_IRQPRIORITY    5
+#define PS2_IRQPRIORITY   15
 
 /* the timer number used for the timers
      note: which one you choose depends on the processor family you are using,
            look at the processor-specific header */
-#define PS2_TIM           16
+#define PS2_TIM            0
 
 /* timer clock source frequency (default: SystemCoreClock or SystemCoreClock >> 1) */
 #define PS2_TIM_CLK       SystemCoreClock >> 1
@@ -75,8 +75,8 @@ extern "C" {
 #define PS2_GETTIME()     HAL_GetTick()
 
 /* keyboard clock and port name, pin number (A..K, 0..15) */
-#define PS2_KBDCLK      E,13
-#define PS2_KBDDATA     E,10
+#define PS2_KBDCLK      X, 0  /* If not used leave it that way */
+#define PS2_KBDDATA     X, 0  /* If not used leave it that way */
 
 /* keyboard buffer size (8,16,32,64,128,256,512,1024,2048,...)
    - KBDRBUF_SIZE: recommended minimum 32
@@ -86,8 +86,8 @@ extern "C" {
 #define KBDTBUF_SIZE       8
 
 /* mouse clock and port name, pin number (A..K, 0..15) */
-#define PS2_MOUSECLK    D,15
-#define PS2_MOUSEDATA   D,14
+#define PS2_MOUSECLK    X, 0  /* If not used leave it that way */
+#define PS2_MOUSEDATA   X, 0  /* If not used leave it that way */
 
 /* mouse buffer size (8,16,32,64,128,256,512,1024,2048,...)
      note: see MOUSE_METHOD note */
